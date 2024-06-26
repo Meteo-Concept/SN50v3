@@ -35,6 +35,7 @@ extern uint8_t inmode,inmode2,inmode3;
 extern uint16_t power_5v_time;
 extern uint32_t count1,count2;
 extern uint16_t intensity;
+extern uint16_t adc_resistance;
 
 void BLE_power_Init(void)
 {
@@ -333,7 +334,11 @@ void BSP_sensor_Read( sensor_t *sensor_data , uint8_t message ,uint8_t mod_temp)
 	}
 	else if(mod_temp==8)
 	{
-		sensor_data->temp1=DS18B20_Read(1,message);
+		if(message==1)
+		{				
+			LOG_PRINTF(LL_DEBUG,"adc_resistance:%d Ohms\r\n",adc_resistance*100);
+       delay_ms(20);				
+		}			
 		POWER_open_time(power_5v_time);
 		sensor_data->ADC_4=ADC_Read(1,message);
 		delay_ms(50);
