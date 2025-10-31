@@ -94,8 +94,9 @@ uint32_t count1=0,count2=0;
 
 TimerTime_t lastCountInt=0U;
 uint16_t intensity=0U;
-uint16_t adc_resistance=12000U;
-uint32_t count_gust=0,max_gust=0;
+uint16_t adc_resistance=1200U;
+uint32_t count_gust=0;
+uint16_t max_gust=0,min_gust=0xFFFFU;
 
 uint8_t downlink_detect_switch=0;
 uint16_t downlink_detect_timeout=0;
@@ -971,11 +972,48 @@ static void Send( void )
 		AppData.Buff[i++] = (count2)>>8;
 		AppData.Buff[i++] = count2 & 0xFF;
 		AppData.Buff[i++] = max_gust & 0xFF;
-		AppData.Buff[i++] =(int)(bsp_sensor_data_buff.wind_dir);
+		AppData.Buff[i++] =(bsp_sensor_data_buff.wind_dir)>>8;
+		AppData.Buff[i++] =(bsp_sensor_data_buff.wind_dir);
 
 		/* reset counters and max */
 		intensity = 0U;
 		max_gust = 0U;
+		min_gust=0xFFFFU;
+		count_gust = 0U;
+		count2 = 0U;
+	} 
+	else if(workmode==13)
+	{
+		AppData.Buff[i++] =(bsp_sensor_data_buff.bat_mv>>8);
+		AppData.Buff[i++] = bsp_sensor_data_buff.bat_mv & 0xFF;
+
+		if(bh1750flags==1)
+		{
+			AppData.Buff[i++] =(bsp_sensor_data_buff.illuminance)>>8;
+			AppData.Buff[i++] =(bsp_sensor_data_buff.illuminance);
+			AppData.Buff[i++] = 0x00;
+			AppData.Buff[i++] = 0x00;
+		}
+		else
+		{
+			AppData.Buff[i++] =(int)(bsp_sensor_data_buff.temp_sht*10)>>8;
+			AppData.Buff[i++] =(int)(bsp_sensor_data_buff.temp_sht*10);
+			AppData.Buff[i++] =(int)(bsp_sensor_data_buff.hum_sht*10)>>8;
+			AppData.Buff[i++] =(int)(bsp_sensor_data_buff.hum_sht*10);
+		}
+
+		/* truncate the data, it should fit in a 16-bit counter anyway */
+		AppData.Buff[i++] = count2>>8;
+		AppData.Buff[i++] = count2 & 0xFF;
+		AppData.Buff[i++] = max_gust & 0xFF;
+		AppData.Buff[i++] = min_gust & 0xFF;
+		AppData.Buff[i++] =(bsp_sensor_data_buff.wind_dir)>>8;
+		AppData.Buff[i++] =(bsp_sensor_data_buff.wind_dir);
+
+		/* reset counters and max */
+		intensity = 0U;
+		max_gust = 0U;
+		min_gust = 0xFFFFU;
 		count_gust = 0U;
 		count2 = 0U;
 	}
@@ -1330,7 +1368,7 @@ static void LORA_RxData( lora_AppData_t *AppData )
 		{
 			if( AppData->BuffSize == 2 )
 			{
-				if((AppData->Buff[1]>=0x01)&&(AppData->Buff[1]<=0x0B))    //---->AT+MOD
+				if((AppData->Buff[1]>=1)&&(AppData->Buff[1]<=13))    //---->AT+MOD
 				{
 					workmode=AppData->Buff[1];
 					downlink_config_store_in_flash=1;
@@ -1933,7 +1971,7 @@ static void send_exti_pa8(void)
 			wakeup_pa8_flag=1;
 		}
 
-		if((workmode!=3)&&(workmode!=8)&&(workmode!=12))
+		if((workmode!=3)&&(workmode!=8)&&(workmode!=12)&&(workmode!=13))
 		{
 			gpio_config_stop3_wakeup(GPIOA, GPIO_PIN_8 ,true,wakeup_a8_mode);
 		}
@@ -1961,7 +1999,7 @@ static void send_exti_pb15(void)
 			wakeup_pb15_flag=1;
 		}
 
-		if((workmode==3)||(workmode==7)||(workmode==8)||(workmode==9)||(workmode==12))
+		if((workmode==3)||(workmode==7)||(workmode==8)||(workmode==9)||(workmode==12)||(workmode==13))
 		{
 			gpio_config_stop3_wakeup(GPIOB, GPIO_PIN_15 ,true,wakeup_b15_mode);
 		}
