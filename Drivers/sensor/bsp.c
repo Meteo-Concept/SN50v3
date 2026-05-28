@@ -85,7 +85,7 @@ static void OnGustTimerEvent( void )
 	else {
 		w_end++;
 	}
-	if (w_begin > w_end) {
+	if (w_begin >= w_end) {
 		w_begin++;
 	}
 	if (w_begin >= W_SIZE) {
