@@ -125,7 +125,7 @@ void BSP_sensor_Init( void  )
 	 GPIO_EXTI8_IoInit(0);		
 	 GPIO_EXTI15_IoInit(0);
 	
-	 if((workmode==1)||(workmode==3)||(workmode==12)||(workmode==13))
+	 if((workmode==1)||(workmode==3)||(workmode==70)||(workmode==71))
 	 {
 		 I2C_GPIO_MODE_Config();
 		 if(check_sht20_connect()==1)
@@ -239,12 +239,12 @@ void BSP_sensor_Init( void  )
 	 {
 		 GPIO_EXTI15_IoInit(inmode3);
 	 }
-	 else if ((workmode!=12)&&(workmode!=13))
+	 else if ((workmode!=70)&&(workmode!=71))
 	 {
 		GPIO_EXTI8_IoInit(inmode);	
 	 }
 	 
-	 if (workmode==12)
+	 if (workmode==70)
 	 {
 			GPIO_EXTI4_IoInit(inmode2);
 			GPIO_EXTI15_IoInit(inmode3);
@@ -252,7 +252,7 @@ void BSP_sensor_Init( void  )
 			TimerSetValue(&GustTimer, GUST_PERIOD);
 			TimerStart(&GustTimer);
 	 }
-	 	 if (workmode==13)
+	 	 if (workmode==71)
 	 {
 			GPIO_EXTI15_IoInit(inmode3);
 			TimerInit(&GustTimer, OnGustTimerEvent);
@@ -278,6 +278,40 @@ void BSP_sensor_Init( void  )
 	 NVIC_SetPriority(GPIO_IRQn, 3);
 	 /* NVIC config */
 	 NVIC_EnableIRQ(GPIO_IRQn);	
+}
+
+void compute_mean_wind_direction(sensor_t* sensor_data) {
+	double v = 0;
+	double u = 0;
+	uint32_t w_total = 0;
+	if (w_begin > w_end) {
+		for (int i=w_begin ; i<W_SIZE ; i++) {
+			u += ws[i] * sin(wd[i]);
+			v += ws[i] * cos(wd[i]);
+			w_total += ws[i];
+		}
+		for (int i=0 ; i<w_end ; i++) {
+			u += ws[i] * sin(wd[i]);
+			v += ws[i] * cos(wd[i]);
+			w_total += ws[i];
+		}
+	}
+	else
+	{
+		for (int i=w_begin ; i<w_end ; i++) {
+			u += ws[i] * sin(wd[i]);
+			v += ws[i] * cos(wd[i]);
+			w_total += ws[i];
+		}
+	}
+
+	if (w_total) {
+		double mean_wd = atan2(v / w_total, u / w_total);
+		uint16_t mean_wd_deg = (uint16_t)((5 * M_PI_2 - mean_wd) * 180 / M_PI) % 360;
+		sensor_data->wind_dir=mean_wd_deg;
+	} else {
+		sensor_data->wind_dir=0xFFFF;
+	}
 }
 
 void BSP_sensor_Read( sensor_t *sensor_data , uint8_t message ,uint8_t mod_temp)
@@ -537,7 +571,7 @@ void BSP_sensor_Read( sensor_t *sensor_data , uint8_t message ,uint8_t mod_temp)
 		sensor_data->in1=Digital_input_Read(3,message);
 		sensor_data->exit_pa8=Digital_input_Read(2,message);		
 	}		
-	else if(mod_temp==12)
+	else if(mod_temp==70)
 	{
 		I2C_read_data(sensor_data,flags,message);
 		POWER_open_time(power_5v_time);
@@ -546,37 +580,7 @@ void BSP_sensor_Read( sensor_t *sensor_data , uint8_t message ,uint8_t mod_temp)
 		sensor_data->ADC_8=ADC_Read(3,message);
 		delay_ms(50);
 		
-		double v = 0;
-		double u = 0;
-		uint32_t w_total = 0;
-		if (w_begin > w_end) {	
-			for (int i=w_begin ; i<W_SIZE ; i++) {
-				u += ws[i] * sin(wd[i]);
-				v += ws[i] * cos(wd[i]);
-				w_total += ws[i];
-			}
-			for (int i=0 ; i<w_end ; i++) {
-				u += ws[i] * sin(wd[i]);
-				v += ws[i] * cos(wd[i]);
-				w_total += ws[i];
-			}
-		}
-		else
-		{
-			for (int i=w_begin ; i<w_end ; i++) {
-				u += ws[i] * sin(wd[i]);
-				v += ws[i] * cos(wd[i]);
-				w_total += ws[i];
-			}
-		}
-
-		if (w_total) {
-			double mean_wd = atan2(v / w_total, u / w_total);
-			uint16_t mean_wd_deg = (uint16_t)((5 * M_PI_2 - mean_wd) * 180 / M_PI) % 360;
-			sensor_data->wind_dir=mean_wd_deg;
-		} else {
-			sensor_data->wind_dir=0xFFFF;
-		}
+		compute_mean_wind_direction(sensor_data);
 		
 		if(message==1)
 		{
@@ -588,7 +592,7 @@ void BSP_sensor_Read( sensor_t *sensor_data , uint8_t message ,uint8_t mod_temp)
 			delay_ms(20);
 		}
 	}		
-	else if(mod_temp==13)
+	else if(mod_temp==71)
 	{
 		I2C_read_data(sensor_data,flags,message);
 		POWER_open_time(power_5v_time);
@@ -596,38 +600,8 @@ void BSP_sensor_Read( sensor_t *sensor_data , uint8_t message ,uint8_t mod_temp)
 		sensor_data->ADC_8=ADC_Read(3,message);
 		delay_ms(50);
 		
-		double v = 0;
-		double u = 0;
-		uint32_t w_total = 0;
-		if (w_begin > w_end) {	
-			for (int i=w_begin ; i<W_SIZE ; i++) {
-				u += ws[i] * sin(wd[i]);
-				v += ws[i] * cos(wd[i]);
-				w_total += ws[i];
-			}
-			for (int i=0 ; i<w_end ; i++) {
-				u += ws[i] * sin(wd[i]);
-				v += ws[i] * cos(wd[i]);
-				w_total += ws[i];
-			}
-		}
-		else
-		{
-			for (int i=w_begin ; i<w_end ; i++) {
-				u += ws[i] * sin(wd[i]);
-				v += ws[i] * cos(wd[i]);
-				w_total += ws[i];
-			}
-		}
+		compute_mean_wind_direction(sensor_data);
 
-		if (w_total) {
-			double mean_wd = atan2(v / w_total, u / w_total);
-			uint16_t mean_wd_deg = (uint16_t)((5 * M_PI_2 - mean_wd) * 180 / M_PI) % 360;
-			sensor_data->wind_dir=mean_wd_deg;
-		} else {
-			sensor_data->wind_dir=0xFFFF;
-		}
-		
 		if(message==1)
 		{
 			LOG_PRINTF(LL_DEBUG,"PB15 count:%u\r\n",(unsigned int)count2);
@@ -637,7 +611,23 @@ void BSP_sensor_Read( sensor_t *sensor_data , uint8_t message ,uint8_t mod_temp)
 			delay_ms(20);
 		}
 	}
-  POWER_IoDeInit();	
+	else if(mod_temp==72)
+	{
+		I2C_read_data(sensor_data,flags,message);
+		POWER_open_time(power_5v_time);
+		sensor_data->count_pa4=count1;
+		sensor_data->count_pb15=count2;
+		sensor_data->ADC_4=5. / ADC_Read(1,message) - 1; // in units of 10^2 Ohms
+
+		if(message==1)
+		{
+			LOG_PRINTF(LL_DEBUG,"PA4 count:%u\r\n",(unsigned int)count1);
+			LOG_PRINTF(LL_DEBUG,"Rate:%u\r\n",(unsigned int)intensity);
+			LOG_PRINTF(LL_DEBUG,"PA8 resistance:%u\r\n",(unsigned int)sensor_data->ADC_4);
+			delay_ms(20);
+		}
+	}
+	POWER_IoDeInit();
 }
 
 uint16_t battery_voltage_measurement(void)

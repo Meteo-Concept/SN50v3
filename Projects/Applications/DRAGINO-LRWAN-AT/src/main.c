@@ -446,7 +446,7 @@ int main(void)
 
 		if(joined_finish==1)
 		{
-			if(((workmode!=6)&&(workmode!=9)&&(workmode!=12)&&(workmode!=10)&&(workmode!=3)&&(workmode!=8))&&(exti_flag==1))
+			if(((workmode!=6)&&(workmode!=9)&&(workmode!=70)&&(workmode!=10)&&(workmode!=3)&&(workmode!=8))&&(exti_flag==1))
 			{
 				if((( LoRaMacState & 0x00000001 ) != 0x00000001 )&&(( LoRaMacState & 0x00000010 ) != 0x00000010))
 				{
@@ -970,7 +970,7 @@ static void Send( void )
 		AppData.Buff[i++] = 0x00;
 		AppData.Buff[i++] = 0x00;
 	}
-	else if(workmode==12)
+	else if(workmode==70)
 	{
 		AppData.Buff[i++] =(bsp_sensor_data_buff.bat_mv>>8);
 		AppData.Buff[i++] = bsp_sensor_data_buff.bat_mv & 0xFF;
@@ -1012,8 +1012,7 @@ static void Send( void )
 		count_gust = 0U;
 		count2 = 0U;
 	} 
-	else if(workmode==13)
-	{
+	else if(workmode==71) {
 		AppData.Buff[i++] =(bsp_sensor_data_buff.bat_mv>>8);
 		AppData.Buff[i++] = bsp_sensor_data_buff.bat_mv & 0xFF;
 
@@ -1046,6 +1045,39 @@ static void Send( void )
 		min_gust = 0xFFFFU;
 		count_gust = 0U;
 		count2 = 0U;
+	}
+	else if(workmode==72) {
+		AppData.Buff[i++] =(bsp_sensor_data_buff.bat_mv>>8);
+		AppData.Buff[i++] = bsp_sensor_data_buff.bat_mv & 0xFF;
+
+		AppData.Buff[i++]=(intensity)>>8;
+		AppData.Buff[i++]=intensity & 0xFF;
+
+		AppData.Buff[i++] =(int)(count1)>>24;
+		AppData.Buff[i++] =(int)(count1)>>16;
+		AppData.Buff[i++] =(int)(count1)>>8;
+		AppData.Buff[i++] =(int)(count1);
+
+		if(bh1750flags==1)
+		{
+			AppData.Buff[i++] =(bsp_sensor_data_buff.illuminance)>>8;
+			AppData.Buff[i++] =(bsp_sensor_data_buff.illuminance);
+			AppData.Buff[i++] = 0x00;
+			AppData.Buff[i++] = 0x00;
+		}
+		else
+		{
+			AppData.Buff[i++] =(int)(bsp_sensor_data_buff.temp_sht*10)>>8;
+			AppData.Buff[i++] =(int)(bsp_sensor_data_buff.temp_sht*10);
+			AppData.Buff[i++] =(int)(bsp_sensor_data_buff.hum_sht*10)>>8;
+			AppData.Buff[i++] =(int)(bsp_sensor_data_buff.hum_sht*10);
+		}
+
+		AppData.Buff[i++] = (int)bsp_sensor_data_buff.ADC_4>>8;
+		AppData.Buff[i++] = (int)bsp_sensor_data_buff.ADC_4;
+
+		/* reset counters and max */
+		intensity = 0U;
 	}
 
 	AppData.BuffSize = i;
@@ -1398,7 +1430,7 @@ static void LORA_RxData( lora_AppData_t *AppData )
 		{
 			if( AppData->BuffSize == 2 )
 			{
-				if((AppData->Buff[1]>=1)&&(AppData->Buff[1]<=13))    //---->AT+MOD
+				if((AppData->Buff[1]>=1 && AppData->Buff[1]<=11)||(AppData->Buff[1]>=70 && AppData->Buff[1] <= 72))    //---->AT+MOD
 				{
 					workmode=AppData->Buff[1];
 					downlink_config_store_in_flash=1;
@@ -1986,7 +2018,7 @@ static void send_exti_pa4(void)
 			wakeup_pa4_flag=1;
 		}
 
-		if((workmode==7)||(workmode==9)||(workmode==12))
+		if((workmode==7)||(workmode==9)||(workmode==70))
 		{
 			gpio_config_stop3_wakeup(GPIOA, GPIO_PIN_4 ,true,wakeup_a4_mode);
 		}
@@ -2014,7 +2046,7 @@ static void send_exti_pa8(void)
 			wakeup_pa8_flag=1;
 		}
 
-		if((workmode!=3)&&(workmode!=8)&&(workmode!=12)&&(workmode!=13))
+		if((workmode!=3)&&(workmode!=8)&&(workmode!=70)&&(workmode!=71))
 		{
 			gpio_config_stop3_wakeup(GPIOA, GPIO_PIN_8 ,true,wakeup_a8_mode);
 		}
@@ -2042,7 +2074,7 @@ static void send_exti_pb15(void)
 			wakeup_pb15_flag=1;
 		}
 
-		if((workmode==3)||(workmode==7)||(workmode==8)||(workmode==9)||(workmode==12)||(workmode==13))
+		if((workmode==3)||(workmode==7)||(workmode==8)||(workmode==9)||(workmode==70)||(workmode==71))
 		{
 			gpio_config_stop3_wakeup(GPIOB, GPIO_PIN_15 ,true,wakeup_b15_mode);
 		}

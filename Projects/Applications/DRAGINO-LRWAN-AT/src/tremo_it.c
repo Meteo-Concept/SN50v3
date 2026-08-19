@@ -238,7 +238,7 @@ void GPIO_IRQHandler(void)
 				 exti2_flag=1;
 				 count2++;
 				}
-				else if((workmode==12)&&((inmode2==2)||(inmode2==3)))
+				else if(((workmode==70)||(workmode==72))&&((inmode2==2)||(inmode2==3)))
 				{
 					uint32_t diff = TimerGetElapsedTime(lastCountInt);
 					if (diff > LOCKOUT_INT_DELAY)
@@ -264,7 +264,7 @@ void GPIO_IRQHandler(void)
 			 {
 				exti3_flag=1;
 			 }
-				else if(((workmode==12)||(workmode==13))&&((inmode3==2)||(inmode3==3)))
+				else if(((workmode==70)||(workmode==71))&&((inmode3==2)||(inmode3==3)))
 				{
 				 exti2_flag=1;
 				 count2++;
